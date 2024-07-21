@@ -113,26 +113,44 @@ void nrf24_set_channel(uint8_t ch){
 	nrf24_w_reg(RF_CH, &ch, 1);
 }
 
-void nrf24_open_tx_pipe(uint8_t *addr){
+void nrf24_open_tx_pipe(const uint8_t *addr){
 	nrf24_w_reg(TX_ADDR, addr, 5);
 }
 
-void nrf24_pld_size(uint8_t size){
+void nrf24_pipe_pld_size(uint8_t pipe, uint8_t size){
 	if(size > 32){
 		size = 32;
-	}else if(size < 0){
-		size = 0;
 	}
 
-	nrf24_w_reg(RX_PW_P0, &size, 1);
-	nrf24_w_reg(RX_PW_P1, &size, 1);
-	nrf24_w_reg(RX_PW_P2, &size, 1);
-	nrf24_w_reg(RX_PW_P3, &size, 1);
-	nrf24_w_reg(RX_PW_P4, &size, 1);
-	nrf24_w_reg(RX_PW_P5, &size, 1);
+	switch(pipe){
+	case 0:
+		nrf24_w_reg(RX_PW_P0, &size, 1);
+
+		break;
+	case 1:
+		nrf24_w_reg(RX_PW_P1, &size, 1);
+
+		break;
+	case 2:
+		nrf24_w_reg(RX_PW_P2, &size, 1);
+
+		break;
+	case 3:
+		nrf24_w_reg(RX_PW_P3, &size, 1);
+
+		break;
+	case 4:
+		nrf24_w_reg(RX_PW_P4, &size, 1);
+
+		break;
+	case 5:
+		nrf24_w_reg(RX_PW_P5, &size, 1);
+
+		break;
+	}
 }
 
-void nrf24_open_rx_pipe(uint8_t pipe, uint8_t *addr){
+void nrf24_open_rx_pipe(uint8_t pipe, const uint8_t *addr){
 
 	uint8_t data = 0;
 
@@ -239,6 +257,20 @@ void nrf24_clear_max_rt(void){
     nrf24_w_reg(STATUS, &data, 1);
 }
 
+uint8_t nrf24_max_rt_flag(void){
+	uint8_t data = 0;
+
+	data = nrf24_r_reg(STATUS, 1);
+
+	data &= (1 << MAX_RT);
+
+	if(data > 0){
+		return 1;
+	}
+
+	return 0;
+}
+
 uint8_t nrf24_r_pld_wid(void){
 	uint8_t width = 0;
 
@@ -270,8 +302,116 @@ void nrf24_stop_listen(void){
 	nrf24_w_reg(CONFIG, &data, 1);
 }
 
-void nrf24_ack(uint8_t ack){
+void nrf24_dpl(uint8_t en){
+	uint8_t feature = nrf24_r_reg(FEATURE, 1);
 
+	if(en == enable){
+		feature |= (1 << EN_DPL);
+	}else{
+		feature &= ~(1 << EN_DPL);
+	}
+
+	nrf24_w_reg(FEATURE, &feature, 1);
+}
+
+void nrf24_set_rx_dpl(uint8_t pipe, uint8_t en){
+	uint8_t enaa = nrf24_r_reg(EN_AA, 1);
+	uint8_t dynpd = nrf24_r_reg(DYNPD, 1);
+
+	if(pipe > 5){
+		pipe = 5;
+	}
+
+	if(en == enable){
+		switch(pipe){
+		case 0:
+			enaa |= (1 << ENAA_P0);
+			dynpd |= (1 << DPL_P0);
+			break;
+		case 1:
+			enaa |= (1 << ENAA_P1);
+			dynpd |= (1 << DPL_P1);
+			break;
+		case 2:
+			enaa |= (1 << ENAA_P2);
+			dynpd |= (1 << DPL_P2);
+			break;
+		case 3:
+			enaa |= (1 << ENAA_P3);
+			dynpd |= (1 << DPL_P3);
+			break;
+		case 4:
+			enaa |= (1 << ENAA_P4);
+			dynpd |= (1 << DPL_P4);
+			break;
+		case 5:
+			enaa |= (1 << ENAA_P5);
+			dynpd |= (1 << DPL_P5);
+			break;
+		}
+
+	}else{
+		switch(pipe){
+		case 0:
+			enaa &= ~(1 << ENAA_P0);
+			dynpd &= ~(1 << DPL_P0);
+			break;
+		case 1:
+			enaa &= ~(1 << ENAA_P1);
+			dynpd &= ~(1 << DPL_P1);
+			break;
+		case 2:
+			enaa &= ~(1 << ENAA_P2);
+			dynpd &= ~(1 << DPL_P2);
+			break;
+		case 3:
+			enaa &= ~(1 << ENAA_P3);
+			dynpd &= ~(1 << DPL_P3);
+			break;
+		case 4:
+			enaa &= ~(1 << ENAA_P4);
+			dynpd &= ~(1 << DPL_P4);
+			break;
+		case 5:
+			enaa &= ~(1 << ENAA_P5);
+			dynpd &= ~(1 << DPL_P5);
+			break;
+		}
+	}
+	nrf24_w_reg(EN_AA, &enaa, 1);
+	nrf24_w_reg(DYNPD, &dynpd, 1);
+}
+
+void nrf24_auto_ack(uint8_t ack){
+	uint8_t feature = nrf24_r_reg(FEATURE, 1);
+
+	if(ack == auto_ack){
+		feature |= (1 << EN_ACK_PAY) | (1 << EN_DYN_ACK);
+	}else if(ack == no_auto_ack){
+		feature &= ~(1 << EN_ACK_PAY) & ~(1 << EN_DYN_ACK);
+	}
+
+	nrf24_w_reg(FEATURE, &feature, 1);
+}
+
+void nrf24_auto_retr_delay(uint8_t delay){
+	uint8_t data = nrf24_r_reg(SETUP_RETR, 1);
+
+	data &= 15;
+
+	data |= (delay << ARD);
+
+	nrf24_w_reg(SETUP_RETR, &data, 1);
+}
+
+void nrf24_auto_retr_limit(uint8_t limit){
+	uint8_t data = nrf24_r_reg(SETUP_RETR, 1);
+
+	data &= 240;
+
+	data |= (limit << ARC);
+
+	nrf24_w_reg(SETUP_RETR, &data, 1);
 }
 
 void nrf24_transmit(uint8_t *data, uint8_t size){
@@ -280,10 +420,51 @@ void nrf24_transmit(uint8_t *data, uint8_t size){
 
 	nrf24_flush_tx();
 
+	nrf24_clear_max_rt();
 	nrf24_clear_tx_ds();
 
 	csn_low();
-	nrf24_w_spec_cmd(W_TX_PAYLOAD);//W_TX_PAYLOAD_NOACK
+	nrf24_w_spec_cmd(W_TX_PAYLOAD);
+	nrf24_w_spec_reg(data, size);
+	csn_high();
+
+	ce_high();
+	HAL_Delay(1);
+	ce_low();
+}
+
+void nrf24_transmit_no_ack(uint8_t *data, uint8_t size){
+
+	ce_low();
+
+	nrf24_flush_tx();
+
+	nrf24_clear_tx_ds();
+
+	csn_low();
+	nrf24_w_spec_cmd(W_TX_PAYLOAD_NOACK);
+	nrf24_w_spec_reg(data, size);
+	csn_high();
+
+	ce_high();
+	HAL_Delay(1);
+	ce_low();
+}
+
+void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size){
+
+	if(pipe > 5){
+		pipe = 5;
+	}
+
+	ce_low();
+
+	nrf24_flush_tx();
+
+	nrf24_clear_tx_ds();
+
+	csn_low();
+	nrf24_w_spec_cmd((W_ACK_PAYLOAD | pipe));
 	nrf24_w_spec_reg(data, size);
 	csn_high();
 
@@ -330,7 +511,7 @@ void nrf24_receive(uint8_t *data, uint8_t size){
 		}
 		nrf24_clear_rx_dr();
 	}
-
 }
+
 
 
