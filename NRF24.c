@@ -257,12 +257,12 @@ void nrf24_clear_max_rt(void){
     nrf24_w_reg(STATUS, &data, 1);
 }
 
-uint8_t nrf24_max_rt_flag(void){
+uint8_t nrf24_read_bit(uint8_t reg, uint8_t bit){
 	uint8_t data = 0;
 
-	data = nrf24_r_reg(STATUS, 1);
+	data = nrf24_r_reg(reg, 1);
 
-	data &= (1 << MAX_RT);
+	data &= (1 << bit);
 
 	if(data){
 		return 1;
@@ -404,13 +404,14 @@ void nrf24_auto_retr_limit(uint8_t limit){
 	nrf24_w_reg(SETUP_RETR, &data, 1);
 }
 
-void nrf24_transmit(uint8_t *data, uint8_t size){
+uint8_t nrf24_transmit(uint8_t *data, uint8_t size){
 
 	ce_low();
 
 	nrf24_flush_tx();
 
 	nrf24_clear_max_rt();
+
 	nrf24_clear_tx_ds();
 
 	csn_low();
@@ -421,6 +422,23 @@ void nrf24_transmit(uint8_t *data, uint8_t size){
 	ce_high();
 	HAL_Delay(1);
 	ce_low();
+
+	uint32_t ms = HAL_GetTick();
+
+	while((HAL_GetTick()-ms) < 150){
+		uint8_t stat = nrf24_r_reg(STATUS, 1);
+		if(stat & (1 << TX_DS)){
+			nrf24_clear_tx_ds();
+			return 1;
+		}
+
+		if(stat & (1 << MAX_RT)){
+			nrf24_clear_max_rt();
+			return 2;
+		}
+	}
+
+	return 0;
 }
 
 void nrf24_transmit_no_ack(uint8_t *data, uint8_t size){
@@ -428,6 +446,8 @@ void nrf24_transmit_no_ack(uint8_t *data, uint8_t size){
 	ce_low();
 
 	nrf24_flush_tx();
+
+	nrf24_clear_max_rt();
 
 	nrf24_clear_tx_ds();
 
@@ -439,6 +459,7 @@ void nrf24_transmit_no_ack(uint8_t *data, uint8_t size){
 	ce_high();
 	HAL_Delay(1);
 	ce_low();
+
 }
 
 void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size){
@@ -447,20 +468,11 @@ void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size){
 		pipe = 5;
 	}
 
-	ce_low();
-
-	nrf24_flush_tx();
-
-	nrf24_clear_tx_ds();
-
 	csn_low();
 	nrf24_w_spec_cmd((W_ACK_PAYLOAD | pipe));
 	nrf24_w_spec_reg(data, size);
 	csn_high();
 
-	ce_high();
-	HAL_Delay(1);
-	ce_low();
 }
 
 uint8_t nrf24_data_available(void){
@@ -485,25 +497,12 @@ void nrf24_flush_on_full_rx(void){
 void nrf24_receive(uint8_t *data, uint8_t size){
 	ce_high();
 
-	uint8_t reg_dt = nrf24_r_reg(STATUS, 1);
+	csn_low();
+	nrf24_w_spec_cmd(R_RX_PAYLOAD);
+	nrf24_r_spec_reg(data, size);
+	csn_high();
 
-	if((reg_dt & (1 << RX_DR))){
-
-		uint8_t wid = nrf24_r_pld_wid();
-
-		if(wid > 32){
-			nrf24_flush_rx();
-		}else{
-			csn_low();
-			nrf24_w_spec_cmd(R_RX_PAYLOAD);
-			nrf24_r_spec_reg(data, size);
-			csn_high();
-		}
-
-		HAL_Delay(1);
-
-		nrf24_clear_rx_dr();
-	}
+	nrf24_flush_rx();
 }
 
 void nrf24_defaults(void){
