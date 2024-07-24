@@ -3,7 +3,7 @@
 
 enum data_rate {
 	_1mbps   = 0,
-	_2Mbps   = 1,
+	_2mbps   = 1,
 	_250kbps = 2
 };
 
@@ -69,6 +69,7 @@ void nrf24_clear_tx_ds(void);
 void nrf24_clear_max_rt(void);
 
 uint8_t nrf24_read_bit(uint8_t reg, uint8_t bit);
+void nrf24_set_bit(uint8_t reg, uint8_t bit, uint8_t val);
 uint8_t nrf24_r_pld_wid(void);
 
 void nrf24_listen(void);
@@ -76,6 +77,7 @@ void nrf24_stop_listen(void);
 
 void nrf24_dpl(uint8_t en);
 void nrf24_set_rx_dpl(uint8_t pipe, uint8_t en);
+
 void nrf24_auto_ack(uint8_t pipe, uint8_t ack);
 void nrf24_auto_ack_all(uint8_t ack);
 void nrf24_en_ack_pld(uint8_t en);
@@ -87,11 +89,12 @@ uint8_t nrf24_transmit(uint8_t *data, uint8_t size);
 void nrf24_transmit_no_ack(uint8_t *data, uint8_t size);
 void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size);
 
+uint8_t nrf24_carrier_detect(void);
 uint8_t nrf24_data_available(void);
-void nrf24_flush_on_full_rx(void);
 void nrf24_receive(uint8_t *data, uint8_t size);
 
 void nrf24_defaults(void);
+void nrf24_init(void);
 
 #endif
 
