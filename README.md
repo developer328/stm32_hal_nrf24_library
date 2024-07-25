@@ -125,14 +125,16 @@ because as i mentioned nrf24 does not returns in default values even after power
 Enable/disable DPL:
 
 enable:
+
     nrf24_dpl(enable);
 
     nrf24_set_rx_dpl(pipe, enable);
 
 
 disable:
-    nrf24_dpl(disable);
 
+    nrf24_dpl(disable);
+    
     nrf24_set_rx_dpl(pipe, disable);
 
 
@@ -140,18 +142,21 @@ disable:
 Enable/disable AUTO_ACK:
 
 enable:
+
     nrf24_auto_ack_all(auto_ack);
 
 disable:
+
     nrf24_auto_ack_all(no_auto_ack); 
 
-    
-    Can be enabled/disabled auto_ack on each pipe individualy:
+    //Can be enabled/disabled auto_ack on each pipe individualy:
 
 enable:
+
     nrf24_auto_ack(pipe, auto_ack);
 
 disable:
+
     nrf24_auto_ack(pipe, no_auto_ack);
 
     nrf24_auto_retr_delay(0);
@@ -162,12 +167,13 @@ disable:
 Enable/disable ACK with payload:
 
 enable:
+
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(enable);
 
     nrf24_auto_retr_delay(0);
     nrf24_auto_retr_limit(15);
-    ...........
+
 
 disable:
 
@@ -176,7 +182,7 @@ disable:
 
     nrf24_auto_retr_delay(0);
     nrf24_auto_retr_limit(15);
-    ...........
+
 
 
 
@@ -184,8 +190,8 @@ Enable/disable and configure CRC:
 
     nrf24_set_crc(en_crc, _1byte);
 
-    First argument can be set as en_crc, which enables CRC, or no_crc, which disables CRC.
-    As second argument can be used _1byte or _2byte.
+    //First argument can be set as en_crc, which enables CRC, or no_crc, which disables CRC.
+    //As second argument can be used _1byte or _2byte.
 
 
 
@@ -193,11 +199,11 @@ Set TX RF power:
 
     nrf24_tx_pwr(_0dbm);
 
-    Can be set used:
-        n18dbm = 0 -> MIN
-	    n12dbm = 1
-	    n6dbm  = 2
-	    _0dbm  = 3 -> MAX
+    //Can be set used:
+    //    n18dbm = 0 -> MIN
+    //    n12dbm = 1
+    //    n6dbm  = 2
+    //    _0dbm  = 3 -> MAX
 
 
 
@@ -205,10 +211,10 @@ Set data rate:
 
     nrf24_data_rate(_250kbps);
 
-    Can be set used:
-	    _1mbps   = 0
-	    _2mbps   = 1
-	    _250kbps = 2
+    //Can be set used:
+    //    _1mbps   = 0
+    //    _2mbps   = 1
+    //    _250kbps = 2
 
 
 
@@ -216,8 +222,8 @@ Set channel:
 
     nrf24_set_channel(90);
     
-    Can be used from 0 to 126 which is equivalent of 2400mhz to 2525mhz.
-    1 = 1mhz
+    //Can be used from 0 to 126 which is equivalent of 2400mhz to 2525mhz.
+    //1 = 1mhz
 
 
 
@@ -225,9 +231,9 @@ Set payload size on individual pipe:
 
     nrf24_pipe_pld_size(pipe, payload_size);
 
-    pipe can be from 0 to 5
+    //pipe can be from 0 to 5
 
-    payload_size can be from 1 to 32
+    //payload_size can be from 1 to 32
 
 
 
@@ -235,7 +241,7 @@ Set Delay betwen Auto-retransmissions:
 
     nrf24_auto_retr_delay(0);
     
-    Can be set from 0 to 15.
+    //Can be set from 0 to 15.
 
 
 
@@ -243,7 +249,7 @@ Set Auto-retransmissions limit:
 
     nrf24_auto_retr_limit(15);
 
-    Can be set from 0 to 15
+    //Can be set from 0 to 15
 
 
 
@@ -261,11 +267,8 @@ Transmit:
 
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(enable);
-    ....
+    
     //and other configurations as well
-    ....
-
-    ...............
 
     uint8_t dataT[PLD_SIZE] = {"Hello"};
     uint8_t tx_ack_pld[PLD_SIZE];
@@ -282,11 +285,8 @@ Transmit:
 
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(enable);
-    ....
+    
     //and other configurations as well
-    ....
-
-    ...............
 
     uint8_t dataT[PLD_SIZE] = {"Hello"};
     nrf24_transmit_no_ack(dataT, sizeof(dataT));
@@ -312,21 +312,19 @@ Receive:
 
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(enable);
-    ....
+    
     //and other configurations as well
-    ....
 
-    ...............
 
     uint8_t dataR[PLD_SIZE];
     uint8_t rx_ack_pld[PLD_SIZE] = {"OK"}
 
-	nrf24_listen();
+    nrf24_listen();
 
-	if(nrf24_data_available()){
-	    nrf24_receive(dataR, sizeof(dataR));
-	    nrf24_transmit_rx_ack_pld(0, rx_ack_pld, sizeof(rx_ack_pld));
-	}
+    if(nrf24_data_available()){
+	nrf24_receive(dataR, sizeof(dataR));
+	nrf24_transmit_rx_ack_pld(0, rx_ack_pld, sizeof(rx_ack_pld));
+    }
 
 
 
