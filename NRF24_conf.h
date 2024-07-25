@@ -1,3 +1,8 @@
+/*
+ * 25-JUL-2024
+ * STM32 HAL NRF24 LIBRARY
+ */
+
 #ifndef _NRF_24_CONF_H_
 #define _NRF_24_CONF_H_
 

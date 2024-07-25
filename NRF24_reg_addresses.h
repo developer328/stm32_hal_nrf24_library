@@ -1,3 +1,8 @@
+/*
+ * 25-JUL-2024
+ * STM32 HAL NRF24 LIBRARY
+ */
+
 #ifndef _NRF_24_REG_ADDRESSES_H
 #define _NRF_24_REG_ADDRESSES_H
 

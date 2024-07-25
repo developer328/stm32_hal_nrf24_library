@@ -1,3 +1,8 @@
+/*
+ * 25-JUL-2024
+ * STM32 HAL NRF24 LIBRARY
+ */
+
 #include <stdio.h>
 #include "stm32f1xx_hal.h"
 #include "NRF24_conf.h"
@@ -415,6 +420,22 @@ void nrf24_auto_retr_limit(uint8_t limit){
 	nrf24_w_reg(SETUP_RETR, &data, 1);
 }
 
+void nrf24_type_to_uint8_t(size_t in, uint8_t* out, uint16_t size){
+	for(uint16_t i = 0; i < size; i++){
+		out[i] = (((in & (255 << (i*8)))) >> (i*8));
+	}
+}
+
+size_t nrf24_uint8_t_to_type(uint8_t* in, uint16_t size){
+	size_t out = 0;
+
+	for(uint16_t i = 0; i < size; i++){
+		out |= (in[i] << (8*i));
+	}
+
+	return out;
+}
+
 uint8_t nrf24_transmit(uint8_t *data, uint8_t size){
 
 	ce_low();
@@ -434,7 +455,6 @@ uint8_t nrf24_transmit(uint8_t *data, uint8_t size){
 	ce_high();
 	HAL_Delay(1);
 	ce_low();
-
 
 	if(nrf24_read_bit(STATUS, MAX_RT) == 1){
 		return 1;
@@ -547,5 +567,4 @@ void nrf24_init(void){
 	nrf24_clear_tx_ds();
 	nrf24_clear_max_rt();
 }
-
 
