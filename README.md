@@ -1,5 +1,6 @@
-                            NRF24 STM32 HAL Library
-====================================================================================
+NRF24 STM32 HAL Library
+
+=====================================================================================
 
 
  This library provides functions to interface the NRF24L01+ transceiver module using 
