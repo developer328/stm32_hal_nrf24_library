@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main_rx.c
+  * @file           : main_tx.c
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -72,10 +72,7 @@ uint8_t tx_addr[5] = {0x45, 0x55, 0x67, 0x10, 0x21};
 
 uint16_t data = 0;
 
-uint8_t rx_ack_pld[PLD_S] = {"ack"};
-
-uint8_t dataR[PLD_S];
-
+uint8_t dataT[PLD_S];
 
 /* USER CODE END 0 */
 
@@ -123,13 +120,13 @@ int main(void)
 
   nrf24_init();
 
-  nrf24_listen();
+  nrf24_stop_listen();
 
   nrf24_auto_ack_all(auto_ack);
   nrf24_en_ack_pld(disable);
   nrf24_dpl(disable);
 
-  nrf24_set_crc(en_crc, _2byte);
+  nrf24_set_crc(no_crc, _1byte);
 
   nrf24_tx_pwr(_0dbm);
   nrf24_data_rate(_1mbps);
@@ -145,7 +142,7 @@ int main(void)
 
   nrf24_pipe_pld_size(0, PLD_S);
 
-  nrf24_auto_retr_delay(2);
+  nrf24_auto_retr_delay(4);
   nrf24_auto_retr_limit(10);
 
   nrf24_open_tx_pipe(tx_addr);
@@ -158,27 +155,24 @@ int main(void)
   while (1)
   {
 
-	nrf24_listen();
+	HAL_ADC_Start(&hadc1);
 
-	if(nrf24_data_available()){
-		nrf24_receive(dataR, sizeof(dataR));
-		//nrf24_transmit_rx_ack_pld(0, rx_ack_pld, sizeof(rx_ack_pld));
+	if(HAL_ADC_PollForConversion(&hadc1, 100) == 0){
+		data = HAL_ADC_GetValue(&hadc1);
 	}
 
-    data = nrf24_uint8_t_to_type(dataR, sizeof(dataR));
+	HAL_ADC_Stop(&hadc1);
 
-	char tmp[40];
-	sprintf(tmp, "| Val= %d |", data);
-	uint8_t n_line[2] = {'\r', '\n'};
+    nrf24_type_to_uint8_t(data, dataT, sizeof(data));
 
-	HAL_UART_Transmit(&huart1, (uint8_t*)tmp, strlen(tmp), 1000);
-	HAL_UART_Transmit(&huart1, n_line, 2, 1000);
+    uint8_t val = nrf24_transmit(dataT, sizeof(dataT));
 
-	//data = 0;
+	char tmp[30];
+	sprintf(tmp, "| val= %d | \r\n", val);
+
+	HAL_UART_Transmit(&huart1, (uint8_t*)tmp, strlen(tmp), 100);
 
 	HAL_Delay(1);
-
-#endif
 
     /* USER CODE END WHILE */
 

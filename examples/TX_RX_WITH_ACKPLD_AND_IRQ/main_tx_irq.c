@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : main_tx.c
+  * @file           : main.c
   * @brief          : Main program body
   ******************************************************************************
   * @attention
@@ -22,6 +22,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <string.h>
+#include "NRF24_conf.h"
 #include "NRF24.h"
 #include "NRF24_reg_addresses.h"
 
@@ -66,7 +67,9 @@ static void MX_ADC1_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-#define PLD_S 32
+//#define TR_
+
+#define PLD_S 2 //payload size should be equal to ack_payload size if DPL is not enabled
 
 uint8_t tx_addr[5] = {0x45, 0x55, 0x67, 0x10, 0x21};
 
@@ -74,7 +77,10 @@ uint16_t data = 0;
 
 uint8_t tx_ack_pld[PLD_S];
 
+volatile uint8_t irq = 0;
+
 uint8_t dataT[PLD_S];
+
 
 /* USER CODE END 0 */
 
@@ -114,7 +120,6 @@ int main(void)
 
 
   csn_high();
-  ce_high();
 
   HAL_Delay(5);
 
@@ -122,17 +127,23 @@ int main(void)
 
   nrf24_init();
 
+
+#ifndef TR_
+  nrf24_listen();
+#else
   nrf24_stop_listen();
+#endif
 
   nrf24_auto_ack_all(auto_ack);
   nrf24_en_ack_pld(enable);
-  nrf24_dpl(enable);
+  nrf24_en_dyn_ack(disable);
+  nrf24_dpl(disable);
 
-  nrf24_set_crc(en_crc, _2byte);
+  nrf24_set_crc(no_crc, _1byte);
 
   nrf24_tx_pwr(_0dbm);
-  nrf24_data_rate(_1mbps);
-  nrf24_set_channel(90);
+  nrf24_data_rate(_250kbps);
+  nrf24_set_channel(83);
   nrf24_set_addr_width(5);
 
   nrf24_set_rx_dpl(0, disable);
@@ -144,12 +155,14 @@ int main(void)
 
   nrf24_pipe_pld_size(0, PLD_S);
 
-  nrf24_auto_retr_delay(2);
+  nrf24_auto_retr_delay(4);
   nrf24_auto_retr_limit(10);
 
   nrf24_open_tx_pipe(tx_addr);
   nrf24_open_rx_pipe(0, tx_addr);
+
   ce_high();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -165,24 +178,38 @@ int main(void)
 
 	HAL_ADC_Stop(&hadc1);
 
-    nrf24_type_to_uint8_t(data, dataT, sizeof(data));
 
-	//nrf24_transmit_no_ack(&data, sizeof(data));
+	nrf24_type_to_uint8_t(data, dataT, sizeof(data));
+
 	uint8_t val = nrf24_transmit(dataT, sizeof(dataT));
-	//if(val == 0){
-	//	nrf24_receive(tx_ack_pld, sizeof(tx_ack_pld));
-	//}
 
-	char tmp[30];
-	sprintf(tmp, "| ack= %s | \r\n", tx_ack_pld);
+	if(irq == 1){
+		uint8_t stat = nrf24_r_status();
 
-	//char tmp1[30;
-	//sprintf(tmp1, "| val= %d | \r\n", val);
+		if(stat & (1 << TX_DS)){
+			HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+			nrf24_receive(tx_ack_pld, sizeof(tx_ack_pld));
+		}else if(stat & (1 << MAX_RT)){
+			nrf24_flush_tx();
+			nrf24_clear_rx_dr();
+		}
+		irq = 0;
+	}
 
-	HAL_UART_Transmit(&huart1, (uint8_t*)tmp, strlen(tmp), 100);
-	//HAL_UART_Transmit(&huart1, (uint8_t*)tmp1, strlen(tmp1), HAL_MAX_DELAY);
+	//char tmp[30];
+	//sprintf(tmp, "| val= %d | \r\n", nrf24_r_status());
 
-	HAL_Delay(1);
+	char tmp1[32];
+	sprintf(tmp1, "| ack= %s | \r\n", tx_ack_pld);
+
+	//HAL_UART_Transmit(&huart1, (uint8_t*)tmp, strlen(tmp), 100);
+	HAL_UART_Transmit(&huart1, (uint8_t*)tmp1, strlen(tmp1), 200);
+
+	for(uint8_t i = 0; i < sizeof(tx_ack_pld); i++){
+		tx_ack_pld[i] = 0;
+	}
+
+	HAL_Delay(2);
 
     /* USER CODE END WHILE */
 
@@ -370,17 +397,23 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_BLTN_GPIO_Port, LED_BLTN_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, LED_BLTN_Pin|GPIO_PIN_14|GPIO_PIN_15, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, CS_Pin|CE_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : LED_BLTN_Pin */
-  GPIO_InitStruct.Pin = LED_BLTN_Pin;
+  /*Configure GPIO pins : LED_BLTN_Pin PC14 PC15 */
+  GPIO_InitStruct.Pin = LED_BLTN_Pin|GPIO_PIN_14|GPIO_PIN_15;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
-  HAL_GPIO_Init(LED_BLTN_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : nrf_irq_Pin */
+  GPIO_InitStruct.Pin = nrf_irq_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(nrf_irq_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : CS_Pin CE_Pin */
   GPIO_InitStruct.Pin = CS_Pin|CE_Pin;
@@ -389,11 +422,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+
+	if(GPIO_Pin == GPIO_PIN_0){
+		irq = 1;
+	}
+}
 
 /* USER CODE END 4 */
 

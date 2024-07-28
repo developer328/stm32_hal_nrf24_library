@@ -232,10 +232,21 @@ void nrf24_flush_rx(void){
 	csn_high();
 }
 
+uint8_t nrf24_r_status(void){
+	uint8_t data = 0;
+	uint8_t cmd = NOP_CMD;
+
+	csn_low();
+	HAL_SPI_TransmitReceive(&hspiX, &cmd, &data, 1, spi_rw_timeout);
+	csn_high();
+
+	return data;
+}
+
 void nrf24_clear_rx_dr(void){
 	uint8_t data = 0;
 
-	data = nrf24_r_reg(STATUS, 1);
+	data = nrf24_r_status();
 
 	data |= (1 << RX_DR);
 
@@ -245,7 +256,7 @@ void nrf24_clear_rx_dr(void){
 void nrf24_clear_tx_ds(void){
 	uint8_t data = 0;
 
-	data = nrf24_r_reg(STATUS, 1);
+	data = nrf24_r_status();
 
 	data |= (1 << TX_DS);
 
@@ -255,7 +266,7 @@ void nrf24_clear_tx_ds(void){
 void nrf24_clear_max_rt(void){
 	uint8_t data = 0;
 
-	data = nrf24_r_reg(STATUS, 1);
+	data = nrf24_r_status();
 
 	data |= (1 << MAX_RT);
 
@@ -436,27 +447,25 @@ size_t nrf24_uint8_t_to_type(uint8_t* in, uint16_t size){
 	return out;
 }
 
+
 uint8_t nrf24_transmit(uint8_t *data, uint8_t size){
 
 	ce_low();
 
-	nrf24_flush_tx();
-
-	nrf24_clear_max_rt();
-
-	nrf24_clear_tx_ds();
-
+	uint8_t cmd = W_TX_PAYLOAD;
 
 	csn_low();
-	nrf24_w_spec_cmd(W_TX_PAYLOAD);
-	nrf24_w_spec_reg(data, size);
+	HAL_SPI_Transmit(&hspiX, &cmd, 1, spi_w_timeout);
+	HAL_SPI_Transmit(&hspiX, data, size, spi_w_timeout);
 	csn_high();
 
 	ce_high();
 	HAL_Delay(1);
 	ce_low();
 
-	if(nrf24_read_bit(STATUS, MAX_RT) == 1){
+	if(nrf24_r_status() & (1 << MAX_RT)){
+		nrf24_clear_max_rt();
+		nrf24_flush_tx();
 		return 1;
 	}
 
@@ -467,21 +476,16 @@ void nrf24_transmit_no_ack(uint8_t *data, uint8_t size){
 
 	ce_low();
 
-	nrf24_flush_tx();
-
-	nrf24_clear_max_rt();
-
-	nrf24_clear_tx_ds();
+	uint8_t cmd = W_TX_PAYLOAD_NOACK;
 
 	csn_low();
-	nrf24_w_spec_cmd(W_TX_PAYLOAD_NOACK);
-	nrf24_w_spec_reg(data, size);
+	HAL_SPI_Transmit(&hspiX, &cmd, 1, spi_w_timeout);
+	HAL_SPI_Transmit(&hspiX, data, size, spi_w_timeout);
 	csn_high();
 
 	ce_high();
 	HAL_Delay(1);
 	ce_low();
-
 }
 
 void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size){
@@ -490,9 +494,11 @@ void nrf24_transmit_rx_ack_pld(uint8_t pipe, uint8_t *data, uint8_t size){
 		pipe = 5;
 	}
 
+	uint8_t cmd = (W_ACK_PAYLOAD | pipe);
+
 	csn_low();
-	nrf24_w_spec_cmd((W_ACK_PAYLOAD | pipe));
-	nrf24_w_spec_reg(data, size);
+	HAL_SPI_Transmit(&hspiX, &cmd, 1, spi_w_timeout);
+	HAL_SPI_Transmit(&hspiX, data, size, spi_w_timeout);
 	csn_high();
 
 }
@@ -513,15 +519,14 @@ uint8_t nrf24_data_available(void){
 }
 
 void nrf24_receive(uint8_t *data, uint8_t size){
+	uint8_t cmd = R_RX_PAYLOAD;
 
 	csn_low();
-	nrf24_w_spec_cmd(R_RX_PAYLOAD);
-	nrf24_r_spec_reg(data, size);
+	HAL_SPI_Transmit(&hspiX, &cmd, 1, spi_w_timeout);
+	HAL_SPI_Receive(&hspiX, data, size, spi_r_timeout);
 	csn_high();
 
 	nrf24_clear_rx_dr();
-
-	nrf24_flush_rx();
 }
 
 void nrf24_defaults(void){

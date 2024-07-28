@@ -170,6 +170,12 @@ void nrf24_flush_rx(void);
 
 
 /*
+ * Read Status register correctly without interfering in processes
+ */
+uint8_t nrf24_r_status(void);
+
+
+/*
  * This function is for clear RX_DR bit in NRF24 STATUS register which sets
  * after receiving data in RX FIFO and it must be cleared by writing 1 which
  * sets it to 0
@@ -342,6 +348,7 @@ void nrf24_defaults(void);
  * 		   MCU reset does not resets NRF24 module
  */
 void nrf24_init(void);
+
 
 #endif
 
