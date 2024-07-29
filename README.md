@@ -80,6 +80,7 @@ Open NRF24_conf.h and select SPI port, CE and CS GPIO pins and CS and CE pins re
 
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(disable);
+    nrf24_en_dyn_ack(disable);
     nrf24_dpl(disable);
 
     nrf24_set_crc(no_crc, _1byte);
@@ -285,6 +286,7 @@ because as i mentioned nrf24 does not returns in default values even after power
 
     nrf24_auto_ack_all(auto_ack);
     nrf24_en_ack_pld(enable);
+    nrf24_en_dyn_ack(enable);
     
     //and other configurations as well
 
@@ -292,6 +294,21 @@ because as i mentioned nrf24 does not returns in default values even after power
     nrf24_transmit_no_ack(dataT, sizeof(dataT));
 
 
+### **4.With ACK_PLD and IRQ**
+
+    nrf24_transmit(dataT, sizeof(dataT));
+
+    if(irq == 1){
+	uint8_t stat = nrf24_r_status();
+
+	if(stat & (1 << TX_DS)){
+		nrf24_receive(tx_ack_pld, sizeof(tx_ack_pld));
+	}else if(stat & (1 << MAX_RT)){
+		nrf24_flush_tx();
+		nrf24_clear_rx_dr();
+	}
+	irq = 0;
+    }
 
 
 ## **Receive:**
@@ -327,3 +344,18 @@ because as i mentioned nrf24 does not returns in default values even after power
     }
 
 
+
+### **3.With ACK_PLD and IRQ**
+
+    if(irq == 1){
+	uint8_t stat = nrf24_r_status();
+
+	if(stat & (1 << RX_DR)){ 
+		nrf24_receive(dataR, sizeof(dataR));
+		nrf24_transmit_rx_ack_pld(0, rx_ack_pld, sizeof(rx_ack_pld));
+	}
+	irq = 0;
+    }
+
+
+    

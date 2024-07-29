@@ -41,6 +41,26 @@ enum {
 	disable = 0
 };
 
+
+
+/*
+ * Set defaults
+ *
+ * NOTICE: Don't use it at start of program because it may broke down process
+ * 		   after reseting the MCU. This function is for only special situations or testing.
+ */
+void nrf24_defaults(void);
+
+
+/*
+ * This function sets everything which is necessary for correct start of program
+ *
+ * NOTICE: Without this function in start of program may cause problems after reseting MCU.
+ * 		   MCU reset does not resets NRF24 module
+ */
+void nrf24_init(void);
+
+
 //These functions are for controll CE and CSN pins which are selected in NRF24_conf.h
 void csn_high(void);
 void csn_low(void);
@@ -330,24 +350,6 @@ uint8_t nrf24_data_available(void);
  * Receive data
  */
 void nrf24_receive(uint8_t *data, uint8_t size);
-
-
-/*
- * Set defaults
- *
- * NOTICE: Don't use it as a init at start of program because it may broke down process
- * 		   after reseting the MCU. This function is for only special situations or testing.
- */
-void nrf24_defaults(void);
-
-
-/*
- * This function sets everything which is vital for correct start of program
- *
- * NOTICE: Without this function in start of program may cause problems after reseting MCU.
- * 		   MCU reset does not resets NRF24 module
- */
-void nrf24_init(void);
 
 
 #endif
