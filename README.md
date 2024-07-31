@@ -7,7 +7,7 @@
 STM32 HAL (Hardware Abstraction Layer). It supports features such as dynamic payload 
 length (DPL), automatic acknowledgment (ACK), and various data rates. 
 
-[Tutorial on youtube][https://www.youtube.com/watch?v=a--IXKcEwdQ]
+[Tutorial on youtube](https://www.youtube.com/watch?v=a--IXKcEwdQ)
 
 ## **Features**
 
